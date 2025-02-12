@@ -36,4 +36,4 @@ deploy-job:
     - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+\-release/'
   environment: production
   script:
-    - cargo publish --token $CARGO_REGISTRY_TOKEN
+    - cargo publish
