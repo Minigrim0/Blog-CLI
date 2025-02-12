@@ -6,9 +6,9 @@ A CLI tool for managing blog posts
 * [X] Adding/Removing/Listing tags from a post
 * [X] Adding/Removing/Listing keywords from a post
 * [X] Automatic fetch of header images from pexel using post's keywords
+* [X] Management of the header images for the post
 * [ ] Building a post (producing basic html, incluedable in other static sites)
 * [ ] Deploying of the post (push of a zip) to a remote location with authentication option
-* [ ] Management of the header images for the post
 
 ## Usage
 
@@ -31,3 +31,16 @@ Options:
   -h, --help     Print help
   -V, --version  Print version
 ```
+
+## Blog posts
+Upon creation of a new blog post, a tree of directories and files is created. The structure is as follows:
+```
+<year>
+└── <month>
+      └── <slugified-title>
+          ├── content.md
+          ├── metadata.toml
+          ├── images/
+```
+
+metadata.toml contains the metadata of the post such as the publication and update dates, keywords and tags.

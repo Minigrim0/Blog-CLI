@@ -117,6 +117,7 @@ fn main() {
     match args.subcmd {
         cli::SubCommand::New { title } => {
             let post = post::Post::new(title);
+
             if let Err(e) = post.save() {
                 println!("Failed to save post: {}", e);
             }

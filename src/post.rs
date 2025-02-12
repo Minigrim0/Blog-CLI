@@ -97,6 +97,8 @@ impl Post {
     /// Saves the post to disk.
     pub fn save(&self) -> Result<(), String> {
         create_path(&self.path)?;
+        let images_path = self.path.join("images");
+        create_path(&images_path)?;
 
         let content_path = format!("{}/content.md", self.path_display());
         fs::write(&content_path, &self.content)
