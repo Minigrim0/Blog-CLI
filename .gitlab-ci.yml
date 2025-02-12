@@ -6,6 +6,8 @@ unit-test-job:
   stage: test
   tags:
     - rust
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+\-release/'
   script:
     - cargo test
 
@@ -15,6 +17,8 @@ linting-test-job:
     - rustup component add rustfmt
   tags:
     - rust
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+\-release/'
   script:
     - cargo fmt --all -- --check
     - cargo clippy -- --deny clippy::pedantic
