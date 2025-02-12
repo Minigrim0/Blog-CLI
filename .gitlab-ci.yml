@@ -2,6 +2,9 @@ stages:
   - test
   - deploy
 
+variables:
+  CARGO_REGISTRY_TOKEN: $CARGO_REGISTRY_TOKEN
+
 unit-test-job:
   stage: test
   tags:
