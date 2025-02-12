@@ -7,7 +7,6 @@ unit-test-job:
   tags:
     - rust
   script:
-    - cargo clippy -- --deny clippy:pedantic
     - cargo test
 
 linting-test-job:
