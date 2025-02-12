@@ -1,23 +1,28 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use log::{info, error};
+use log::{info, warn, error};
 use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Datelike, Utc};
 use slugify::slugify;
 
 use crate::utils::create_path;
+use crate::header::{PexelPicture, get_new_candidates};
 
 #[derive(Debug)]
+/// A blog post, represented on disk by a minimum of two files,
+/// * content.md  # The content of the file
+/// * metadata.toml  # The post's metadata
 pub struct Post {
     pub content: String,  // Markdown content
     pub path: PathBuf,     // Path to the post
-    pub metadata: Metadata,
+    pub metadata: Metadata,  // Metadata of the post
 }
 
 impl Post {
     /// Creates a new post with the given title.
-    pub fn new(title: String) -> Self {
+    pub fn new<S: AsRef<str>>(title: S) -> Self {
+        let title = title.as_ref().to_string();
         info!("Creating new post with title: {}", title);
 
         let path = {
@@ -107,39 +112,6 @@ impl Post {
         Ok(())
     }
 
-    pub fn update_header_image(&self) -> Result<(), String> {
-        let mut header_path = {
-            let header_sub_path: PathBuf = [r"images", "header"].iter().collect();
-            self.path.join(header_sub_path)
-        };
-
-        if header_path.exists() {
-            header_path.push("header.jpg");
-            if header_path.exists() && header_path.is_file() {
-                return Err("A header file already exists for this blog post. If you want to find a new one, delete this file and run the command again".to_string());
-            }
-        }
-
-        if self.metadata.opengraph.keywords.is_empty() {
-            return Err("Unable to fetch image for the blog post; The post has no keyword".to_string());
-        }
-
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|e| e.to_string())?;
-
-        let _ = rt.block_on(super::pexel::get_image(self, 3))?;
-
-        Ok(())
-    }
-
-    /// Returns the blog post keywords.
-    /// ! This copies the tags vector
-    pub fn get_keywords(&self) -> Vec<String> {
-        self.metadata.opengraph.keywords.clone()
-    }
-
     /// Returns a string representation of the post's path. Or an error message if the path is invalid.
     fn path_display(&self) -> String {
         self.path.to_str().unwrap_or("Error; unable to display path").to_string()
@@ -156,6 +128,87 @@ impl Metadata {
     pub fn with_title<S: AsRef<str>>(mut self, title: S) -> Self {
         self.post.title = title.as_ref().to_string();
         self
+    }
+}
+
+impl Metadata {
+    pub fn header_path(blog_path: &PathBuf) -> PathBuf {
+        let header_sub_path: PathBuf = [r"images", "header"].iter().collect();
+        blog_path.join(header_sub_path)
+    }
+
+    pub fn header_exists(path: &PathBuf) -> Option<PathBuf> {
+        let mut header_path = Self::header_path(path);
+        header_path.push("header.jpg");
+        if header_path.exists() && header_path.is_file() {
+            Some(header_path)
+        } else {
+            None
+        }
+    }
+
+    /// Fetches new candidate header images from pexel
+    pub fn fetch_new_header_images(&self, path: &PathBuf, amount: usize) -> Result<(), String> {
+        if self.opengraph.keywords.is_empty() {
+            return Err("Unable to fetch image for the blog post; The post has no keyword".to_string());
+        }
+
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| e.to_string())?;
+
+        let _ = rt.block_on(get_new_candidates(Self::header_path(&path), &self.opengraph.keywords, amount))?;
+
+        Ok(())
+    }
+
+    pub fn list_header_candidates(&self, path: &PathBuf) -> Result<(), String> {
+        let header_path = Self::header_path(path).join("candidates");
+
+        let mut index = 1;
+        for path in fs::read_dir(header_path).map_err(|e| e.to_string())? {
+            let path = path.map_err(|e| e.to_string())?;
+            if let Some(extension) = path.path().extension() {
+                if extension == "toml" {
+                    let content = fs::read_to_string(path.path()).map_err(|e| e.to_string())?;
+                    let picture = toml::from_str::<PexelPicture>(content.as_str()).map_err(|e| e.to_string())?;
+                    println!("{} - {}", index, picture);
+
+                    index += 1;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn choose_header(&self, path: &PathBuf, index: usize) -> Result<(), String> {
+        if Self::header_exists(&path).is_some() {
+            warn!("A header file has already been selected, it will be overwritten");
+        }
+
+        let header_path = Self::header_path(path);
+
+        let chosen_header_picture = header_path.join("header.jpg");
+        let chosen_header_metadata = header_path.join("header.toml");
+
+        let candidate_path = header_path.join("candidates");
+        let candidate_header_picture = candidate_path.join(format!("header_{index}.jpg"));
+        let candidate_header_metadata = candidate_path.join(format!("header_{index}.toml"));
+
+        if !candidate_header_picture.exists() || !candidate_header_picture.is_file() {
+            return Err(format!("No candidate header with the id {} could be found", index));
+        }
+        if !candidate_header_metadata.exists() || !candidate_header_metadata.is_file() {
+            return Err(format!("The metadata file for candidate header {} could not be found", index));
+        }
+
+        // Move header picture & metadata one folder above
+        fs::copy(candidate_header_picture, chosen_header_picture).map_err(|e| e.to_string())?;
+        fs::copy(candidate_header_metadata, chosen_header_metadata).map_err(|e| e.to_string())?;
+
+        Ok(())
     }
 }
 

@@ -1,8 +1,11 @@
 use clap::Parser;
 use colog;
 
+#[cfg(test)]
+mod tests;
+
 mod cli;
-mod pexel;
+mod header;
 mod post;
 mod utils;
 
@@ -80,6 +83,32 @@ fn handle_tag_command(command: cli::Tag) {
     }
 }
 
+fn handle_header_command(command: cli::Header) {
+    let post = post::Post::load(command.post)
+        .unwrap_or_else(|e| {
+            println!("Failed to load post: {}", e);
+            std::process::exit(1);
+        });
+
+    match command.subcmd {
+        cli::HeaderSubCommand::Choose { index } => {
+            if let Err(e) = post.metadata.choose_header(&post.path, index) {
+                println!("Error while selecting the header: {}", e);
+            }
+        }
+        cli::HeaderSubCommand::Fetch { amount } => {
+            if let Err(e) = post.metadata.fetch_new_header_images(&post.path, amount) {
+                println!("Error while fetching new posts: {}", e);
+            }
+        }
+        cli::HeaderSubCommand::List => {
+            if let Err(e) = post.metadata.list_header_candidates(&post.path) {
+                println!("Error while displaying candidate pictures: {}", e);
+            }
+        }
+    }
+}
+
 fn main() {
     colog::init();
 
@@ -98,9 +127,6 @@ fn main() {
                     println!("Failed to load post: {}", e);
                     std::process::exit(1);
                 });
-            if let Err(e) = post.update_header_image() {
-                println!("Failed to update header image: {}", e);
-            }
 
             if let Err(e) = post.build() {
                 println!("Failed to build post: {}", e);
@@ -124,8 +150,8 @@ fn main() {
         cli::SubCommand::Keyword(command) => {
             handle_keyword_command(command);
         }
-        cli::SubCommand::Header(_) => {
-            println!("Header command not implemented yet");
+        cli::SubCommand::Header(command) => {
+            handle_header_command(command);
         }
     }
 }
