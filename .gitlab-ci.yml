@@ -1,14 +1,7 @@
 stages:
-  - build
   - test
+  - build
   - deploy
-
-build-job:
-  stage: build
-  tags:
-    - rust
-  script:
-    - cargo build --release
 
 unit-test-job:
   stage: test
@@ -16,6 +9,13 @@ unit-test-job:
     - rust
   script:
     - cargo test
+
+build-job:
+  stage: build
+  tags:
+    - rust
+  script:
+    - cargo build --release
 
 deploy-job:
   stage: deploy
