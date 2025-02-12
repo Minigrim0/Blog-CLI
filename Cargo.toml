@@ -6,7 +6,10 @@ authors = ["Minigrim0 <grimauflorent@gmail.com>"]
 license = "MIT"
 description = "A CLI tool to manage blog posts"
 readme = "README.md"
-homepage = "https://"
+homepage = "https://git.minigrim0.xyz/Minigrim0/blog-cli"
+repository = "https://git.minigrim0.xyz/Minigrim0/blog-cli"
+keywords = ["cli", "blog", "managment"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 chrono = { version = "0.4.39", features = ["serde"] }
