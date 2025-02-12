@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::fs::DirBuilder;
+use std::path::PathBuf;
 
 use log::info;
 
@@ -9,8 +9,8 @@ pub fn create_path(path: &PathBuf) -> Result<(), String> {
         info!("Creating path: {}", path.display());
         DirBuilder::new()
             .recursive(true)
-            .create(&path)
-            .map_err(|e| format!("Failed to create directory: {}", e))?;
+            .create(path)
+            .map_err(|e| format!("Failed to create directory: {e}"))?;
     }
 
     Ok(())

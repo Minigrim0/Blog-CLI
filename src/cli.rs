@@ -73,7 +73,6 @@ pub enum KeywordSubCommand {
     List,
 }
 
-
 #[derive(Parser)]
 pub struct Header {
     /// The path to the post

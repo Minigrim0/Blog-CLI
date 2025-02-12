@@ -1,22 +1,22 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use log::{info, warn, error};
-use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Datelike, Utc};
+use log::{error, info, warn};
+use serde::{Deserialize, Serialize};
 use slugify::slugify;
 
+use crate::header::{get_new_candidates, PexelPicture};
 use crate::utils::create_path;
-use crate::header::{PexelPicture, get_new_candidates};
 
 #[derive(Debug)]
 /// A blog post, represented on disk by a minimum of two files,
 /// * content.md  # The content of the file
 /// * metadata.toml  # The post's metadata
 pub struct Post {
-    pub content: String,  // Markdown content
-    pub path: PathBuf,     // Path to the post
-    pub metadata: Metadata,  // Metadata of the post
+    pub content: String,    // Markdown content
+    pub path: PathBuf,      // Path to the post
+    pub metadata: Metadata, // Metadata of the post
 }
 
 impl Post {
@@ -33,10 +33,13 @@ impl Post {
             path.push(slugify!(title.as_str()));
             path
         };
-        info!("Generated path: {}", path.to_str().unwrap_or("Error; unable to display path"));
+        info!(
+            "Generated path: {}",
+            path.to_str().unwrap_or("Error; unable to display path")
+        );
 
         Self {
-            content: format!("# {}", title),
+            content: format!("# {title}"),
             path,
             metadata: Metadata::default().with_title(title),
         }
@@ -47,20 +50,23 @@ impl Post {
         info!("Loading post from path: {}", path);
         let path = PathBuf::from(path);
         if !path.exists() {
-            error!("Path does not exist: {}", path.to_str().unwrap_or("Error; unable to display path"));
+            error!(
+                "Path does not exist: {}",
+                path.to_str().unwrap_or("Error; unable to display path")
+            );
             return Err("Blog post does not exist".to_string());
         }
 
         let content_path = path.join(Path::new("content.md"));
         let content = fs::read_to_string(&content_path)
-            .map_err(|e| format!("Failed to read content file: {}", e))?;
+            .map_err(|e| format!("Failed to read content file: {e}"))?;
 
         let metadata_path = path.join(Path::new("metadata.toml"));
         let metadata_toml = fs::read_to_string(&metadata_path)
-            .map_err(|e| format!("Failed to read metadata file: {}", e))?;
+            .map_err(|e| format!("Failed to read metadata file: {e}"))?;
 
         let metadata: Metadata = toml::from_str(&metadata_toml)
-            .map_err(|e| format!("Failed to parse metadata file: {}", e))?;
+            .map_err(|e| format!("Failed to parse metadata file: {e}"))?;
 
         Ok(Self {
             content,
@@ -76,7 +82,12 @@ impl Post {
         self.save()?;
 
         let output_path: PathBuf = self.path.join(Path::new("dist/"));
-        info!("Building post at path: {}", output_path.to_str().unwrap_or("Error; unable to display path"));
+        info!(
+            "Building post at path: {}",
+            output_path
+                .to_str()
+                .unwrap_or("Error; unable to display path")
+        );
 
         create_path(&output_path)?;
 
@@ -84,11 +95,12 @@ impl Post {
 
         let output_file = output_path.join(Path::new("index.html"));
         fs::write(&output_file, html_content)
-            .map_err(|e| format!("Failed to write output file: {}", e))?;
+            .map_err(|e| format!("Failed to write output file: {e}"))?;
 
         Ok(())
     }
 
+    #[allow(clippy::unused_self)]
     /// Publishes the post, uploading it to the blog's server.
     pub fn publish(&mut self) -> Result<(), String> {
         Err("Not implemented".to_string())
@@ -102,21 +114,24 @@ impl Post {
 
         let content_path = format!("{}/content.md", self.path_display());
         fs::write(&content_path, &self.content)
-            .map_err(|e| format!("Failed to write content file: {}", e))?;
+            .map_err(|e| format!("Failed to write content file: {e}"))?;
 
         let metadata_path = format!("{}/metadata.toml", self.path_display());
         let metadata_toml = toml::to_string(&self.metadata)
-            .map_err(|e| format!("Failed to serialize metadata: {}", e))?;
+            .map_err(|e| format!("Failed to serialize metadata: {e}"))?;
 
         fs::write(&metadata_path, metadata_toml)
-            .map_err(|e| format!("Failed to write metadata file: {}", e))?;
+            .map_err(|e| format!("Failed to write metadata file: {e}"))?;
 
         Ok(())
     }
 
     /// Returns a string representation of the post's path. Or an error message if the path is invalid.
     fn path_display(&self) -> String {
-        self.path.to_str().unwrap_or("Error; unable to display path").to_string()
+        self.path
+            .to_str()
+            .unwrap_or("Error; unable to display path")
+            .to_string()
     }
 }
 
@@ -134,12 +149,12 @@ impl Metadata {
 }
 
 impl Metadata {
-    pub fn header_path(blog_path: &PathBuf) -> PathBuf {
+    pub fn header_path(blog_path: &Path) -> PathBuf {
         let header_sub_path: PathBuf = [r"images", "header"].iter().collect();
         blog_path.join(header_sub_path)
     }
 
-    pub fn header_exists(path: &PathBuf) -> Option<PathBuf> {
+    pub fn header_exists(path: &Path) -> Option<PathBuf> {
         let mut header_path = Self::header_path(path);
         header_path.push("header.jpg");
         if header_path.exists() && header_path.is_file() {
@@ -150,9 +165,11 @@ impl Metadata {
     }
 
     /// Fetches new candidate header images from pexel
-    pub fn fetch_new_header_images(&self, path: &PathBuf, amount: usize) -> Result<(), String> {
+    pub fn fetch_new_header_images(&self, path: &Path, amount: usize) -> Result<(), String> {
         if self.opengraph.keywords.is_empty() {
-            return Err("Unable to fetch image for the blog post; The post has no keyword".to_string());
+            return Err(
+                "Unable to fetch image for the blog post; The post has no keyword".to_string(),
+            );
         }
 
         let rt = tokio::runtime::Builder::new_current_thread()
@@ -160,12 +177,16 @@ impl Metadata {
             .build()
             .map_err(|e| e.to_string())?;
 
-        let _ = rt.block_on(get_new_candidates(Self::header_path(&path), &self.opengraph.keywords, amount))?;
+        let _ = rt.block_on(get_new_candidates(
+            Self::header_path(path),
+            &self.opengraph.keywords,
+            amount,
+        ))?;
 
         Ok(())
     }
 
-    pub fn list_header_candidates(&self, path: &PathBuf) -> Result<(), String> {
+    pub fn list_header_candidates(path: &Path) -> Result<(), String> {
         let header_path = Self::header_path(path).join("candidates");
 
         let mut index = 1;
@@ -174,8 +195,9 @@ impl Metadata {
             if let Some(extension) = path.path().extension() {
                 if extension == "toml" {
                     let content = fs::read_to_string(path.path()).map_err(|e| e.to_string())?;
-                    let picture = toml::from_str::<PexelPicture>(content.as_str()).map_err(|e| e.to_string())?;
-                    println!("{} - {}", index, picture);
+                    let picture = toml::from_str::<PexelPicture>(content.as_str())
+                        .map_err(|e| e.to_string())?;
+                    println!("{index} - {picture}");
 
                     index += 1;
                 }
@@ -185,8 +207,8 @@ impl Metadata {
         Ok(())
     }
 
-    pub fn choose_header(&self, path: &PathBuf, index: usize) -> Result<(), String> {
-        if Self::header_exists(&path).is_some() {
+    pub fn choose_header(path: &Path, index: usize) -> Result<(), String> {
+        if Self::header_exists(path).is_some() {
             warn!("A header file has already been selected, it will be overwritten");
         }
 
@@ -200,10 +222,14 @@ impl Metadata {
         let candidate_header_metadata = candidate_path.join(format!("header_{index}.toml"));
 
         if !candidate_header_picture.exists() || !candidate_header_picture.is_file() {
-            return Err(format!("No candidate header with the id {} could be found", index));
+            return Err(format!(
+                "No candidate header with the id {index} could be found",
+            ));
         }
         if !candidate_header_metadata.exists() || !candidate_header_metadata.is_file() {
-            return Err(format!("The metadata file for candidate header {} could not be found", index));
+            return Err(format!(
+                "The metadata file for candidate header {index} could not be found",
+            ));
         }
 
         // Move header picture & metadata one folder above
@@ -214,7 +240,8 @@ impl Metadata {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[allow(clippy::module_name_repetitions)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct PostInfo {
     pub title: String,
     pub author: String,
@@ -223,24 +250,12 @@ pub struct PostInfo {
     pub tags: Vec<String>,
 }
 
-impl Default for PostInfo {
-    fn default() -> Self {
-        Self {
-            title: "".to_string(),
-            published_date: None,
-            update: None,
-            author: "".to_string(),
-            tags: vec![],
-        }
-    }
-}
-
 impl PostInfo {
     /// Adds a tag to the post.
     pub fn add_tag(&mut self, tag: String) -> Result<(), String> {
-        info!("Adding tag {} to post", tag);
+        info!("Adding tag {tag} to post");
         if self.tags.contains(&tag) {
-            Err(format!("Tag `{}` is already attached to this blog post", tag))
+            Err(format!("Tag `{tag}` is already attached to this blog post",))
         } else {
             self.tags.push(tag);
             Ok(())
@@ -248,14 +263,18 @@ impl PostInfo {
     }
 
     /// Removes a tag from the post.
-    pub fn remove_tag(&mut self, tag: String) -> Result<(), String> {
-        info!("Removing tag {} from post", tag);
-        if !self.tags.contains(&tag) {
-            Err(format!("Tag `{}` is already attached to this blog post", tag))
-        } else {
-            let index = self.tags.iter().position(|x| x == &tag).ok_or(format!("Tag `{}` was not found in the post's tags", tag))?;
+    pub fn remove_tag(&mut self, tag: &str) -> Result<(), String> {
+        info!("Removing tag {tag} from post");
+        if self.tags.contains(&tag.to_string()) {
+            let index = self
+                .tags
+                .iter()
+                .position(|x| x == tag)
+                .ok_or(format!("Tag `{tag}` was not found in the post's tags"))?;
             self.tags.remove(index);
             Ok(())
+        } else {
+            Err(format!("Tag `{tag}` is already attached to this blog post",))
         }
     }
 
@@ -267,12 +286,12 @@ impl PostInfo {
         }
 
         for tag in &self.tags {
-            println!("* {}", tag);
+            println!("* {tag}");
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct OpenGraph {
     pub short: String,
     pub opengraphimage: String,
@@ -280,23 +299,14 @@ pub struct OpenGraph {
     pub keywords: Vec<String>,
 }
 
-impl Default for OpenGraph {
-    fn default() -> Self {
-        Self {
-            short: "".to_string(),
-            description: "".to_string(),
-            opengraphimage: "".to_string(),
-            keywords: vec![]
-        }
-    }
-}
-
 impl OpenGraph {
     /// Adds a tag to the post.
     pub fn add_keyword(&mut self, keyword: String) -> Result<(), String> {
         info!("Adding keyword {} to post", keyword);
         if self.keywords.contains(&keyword) {
-            Err(format!("Keyword `{}` is already attached to this blog post", keyword))
+            Err(format!(
+                "Keyword `{keyword}` is already attached to this blog post"
+            ))
         } else {
             self.keywords.push(keyword);
             Ok(())
@@ -304,14 +314,22 @@ impl OpenGraph {
     }
 
     /// Removes a keyword from the post.
-    pub fn remove_keyword(&mut self, keyword: String) -> Result<(), String> {
+    pub fn remove_keyword(&mut self, keyword: &str) -> Result<(), String> {
         info!("Removing keyword {} from post", keyword);
-        if !self.keywords.contains(&keyword) {
-            Err(format!("Keyword `{}` is already attached to this blog post", keyword))
-        } else {
-            let index = self.keywords.iter().position(|x| x == &keyword).ok_or(format!("Keyword `{}` was not found in the post's tags", keyword))?;
+        if self.keywords.contains(&keyword.to_string()) {
+            let index = self
+                .keywords
+                .iter()
+                .position(|x| x == keyword)
+                .ok_or(format!(
+                    "Keyword `{keyword}` was not found in the post's tags",
+                ))?;
             self.keywords.remove(index);
             Ok(())
+        } else {
+            Err(format!(
+                "Keyword `{keyword}` is already attached to this blog post",
+            ))
         }
     }
 
@@ -323,7 +341,7 @@ impl OpenGraph {
         }
 
         for keyword in &self.keywords {
-            println!("* {}", keyword);
+            println!("* {keyword}");
         }
     }
 }
