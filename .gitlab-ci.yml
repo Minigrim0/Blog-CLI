@@ -13,6 +13,8 @@ linting-test-job:
   before_script:
     - rustup component add clippy
     - rustup component add rustfmt
+  tags:
+    - rust
   script:
     - cargo fmt --all -- --check
     - cargo clippy -- --deny clippy::pedantic
