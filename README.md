@@ -45,3 +45,10 @@ Upon creation of a new blog post, a tree of directories and files is created. Th
 ```
 
 metadata.toml contains the metadata of the post such as the publication and update dates, keywords and tags.
+
+## Pre-commit hook
+A pre-commit hook script is located in `.github/pre-commit`. It checks that the code is formatted with `rustfmt`, that `clippy` is happy and that the tests pass. To install
+the hook, run the following command:
+```bash
+$ ln -s ../../.github/pre-commit .git/hooks/pre-commit
+```
