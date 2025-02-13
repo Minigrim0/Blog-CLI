@@ -22,7 +22,7 @@ jobs:
       run: |
         rustup component add clippy
         rustup component add rustfmt
-  
+
     - name: lint with clippy
       run: cargo clippy -- --deny clippy:pedantic
 
@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: stable
@@ -40,11 +41,12 @@ jobs:
     - name: Run tests
       run: cargo test
 
-  
+
   push-to-crates-io:
     runs-on: ubuntu-latest
 
     steps:
+    - uses: actions/checkout@v4
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: stable
