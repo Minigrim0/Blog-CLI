@@ -1,6 +1,6 @@
 use std::fs::DirBuilder;
 use std::path::Path;
-use std::{io, fs};
+use std::{fs, io};
 
 use log::info;
 
