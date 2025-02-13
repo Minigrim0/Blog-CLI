@@ -1,5 +1,6 @@
 # Blog CLI
 A CLI tool for managing blog posts
+![crates.io badge](https://img.shields.io/crates/v/blog.svg)
 
 ## Features
 * [X] Creation of blog posts directories with basic files
