@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use slugify::slugify;
 
 use crate::header::{get_new_candidates, PexelPicture};
-use crate::utils::{create_path, copy_dir_all};
+use crate::utils::{copy_dir_all, create_path};
 
 #[derive(Debug)]
 /// A blog post, represented on disk by a minimum of two files,
@@ -91,7 +91,8 @@ impl Post {
 
         create_path(&output_path)?;
 
-        let html_content = markdown::to_html_with_options(&self.content, &markdown::Options::gfm()).map_err(|e| e.to_string())?;
+        let html_content = markdown::to_html_with_options(&self.content, &markdown::Options::gfm())
+            .map_err(|e| e.to_string())?;
 
         let output_file = output_path.join(Path::new("index.html"));
         fs::write(&output_file, html_content)
