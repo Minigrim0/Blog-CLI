@@ -43,6 +43,7 @@ jobs:
 
 
   push-to-crates-io:
+    needs: [linting, testing]
     runs-on: ubuntu-latest
 
     steps:
